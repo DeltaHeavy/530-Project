@@ -9,11 +9,13 @@ of a CFG by instrumenting code to emit some sort of events as basic blocks are
 traversed.
 
 # Roadmap
-* ANTLR :: C -> JSON
-* Ingest JSON to AST
-* Construct CFG from AST
 * Learn LLVM layers
 * EITHER add LLVM layer to instrument Basic Block transitions
 * OR emit llvm assembly and "by hand" instrument transitions
 * Catch transition events and map onto CFG
 * Traverse CFG to determine coverage
+
+# Current step (due Friday, May 19th)
+Given LLVM IR, parse to and create per-function control flow graphs
+linking labels, create links between functions based on calls, and
+create an overall graph with an entry to main.
