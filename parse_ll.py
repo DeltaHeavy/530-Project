@@ -1,5 +1,12 @@
 #!/usr/bin/python3
 
+""" 
+Max Zinkus
+CSC 530
+Evaluating traditional code coverage metrics by
+tracking code progress over a CFG
+"""
+
 def read_file(fname):
     with open(fname, 'r') as f:
         d = f.readlines()
