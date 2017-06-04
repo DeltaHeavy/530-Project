@@ -1,4 +1,7 @@
 #include <stdlib.h>
+#include <stdio.h>
+
+#include "coverage.h"
 
 struct list_el {
    int val;
@@ -7,7 +10,7 @@ struct list_el {
 
 typedef struct list_el item;
 
-void main() {
+int main() {
    item * curr, * head;
    int i;
 
