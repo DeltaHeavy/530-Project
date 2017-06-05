@@ -7,13 +7,15 @@ Evaluating traditional code coverage metrics by
 tracking code progress over a CFG
 
 TODO
-* instrument in a global string for each label and function
+* instrument in a global string for each function
+* plop that string into calls to __f_transition
 """
 
-#INSTR_CALL = "  call void @__transition__(i8*" # TODO
-INSTR_CALL = "  call void @transition()"
+F_INSTR_CALL = "  call void @__f_transition("
+BB_INSTR_CALL = "  call void @__bb_transition(i64 "
 
-INSTR_DECLARE = "\ndeclare void @transition()\n"
+F_INSTR_DECLARE = "\ndeclare void @__f_transition(i8*)\n"
+BB_INSTR_DECLARE = "\ndeclare void @__bb_transition(i64)\n"
 
 def read_file(fname):
     """ file : str -> [line : str] """
@@ -55,16 +57,17 @@ def func_split(lines):
 def instrument_function(lines):
     """ [line : str] -> [line : str] """
     appends = []
-    lines.insert(1, INSTR_CALL)
+    #lines.insert(1, F_INSTR_CALL)
     for i in range(len(lines)):
         if "; <label>" in lines[i]:
+            l = lines[i][lines[i].index('<label>:')+len('<label>:'):lines[i].rindex(';')].strip()
             j = i
             while "phi" in lines[j+1]:
                 j += 1
-            appends.append(j+1)
+            appends.append((j+1, l))
     while appends:
-        i = appends.pop()
-        lines.insert(i, INSTR_CALL)
+        i,l = appends.pop()
+        lines.insert(i, BB_INSTR_CALL + l + ")")
     return lines
 
 if __name__ == '__main__':
@@ -73,7 +76,7 @@ if __name__ == '__main__':
         lines = read_file(argv[1])
         names, pre, funcs, after = func_split(lines)
         print('\n'.join(pre))
-        print(INSTR_DECLARE)
+        print(BB_INSTR_DECLARE)
         for k in names:
             funcs[k] = instrument_function(funcs[k])
             print('\n'.join(funcs[k]))
