@@ -76,7 +76,17 @@ def get_f_name(name):
 
 def build_cfg(lines):
     """ lines -> list of (src, targ) pairs """
-    return []
+    edges = set()
+    for line in lines:
+        if line.startswith("; <label>:"):
+            if "preds" in line:
+                lbl = line[line.index('<label>:')+len('<label>:'):line.rindex(';')].strip()
+                preds = line[line.rindex('=')+1:].replace('%','').split(', ')
+                for pred in preds:
+                    edges.add((int(pred.strip()), int(lbl)))
+            else:
+                raise Exception("Label without predecessors!\n%s" % line)
+    return list(edges)
 
 if __name__ == '__main__':
     from sys import argv, stderr, exit
