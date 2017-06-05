@@ -7,6 +7,8 @@ Evaluating traditional code coverage metrics by
 tracking code progress over a CFG
 """
 
+import json
+
 F_INSTR_CALL = "  call void @__f_transition(i8* getelementptr inbounds (["
 F_INSTR_MID = " x i8]* @."
 F_INSTR_TAIL = "str, i32 0, i32 0))"
@@ -72,19 +74,30 @@ def get_f_name(name):
     return "@." + name + "str = private unnamed_addr constant [" + (
             str(len(name)+1) + " x i8] c\"" + name + "\\00\", align 1")
 
+def build_cfg(lines):
+    """ lines -> list of (src, targ) pairs """
+    return []
+
 if __name__ == '__main__':
-    from sys import argv
-    if len(argv) > 1:
+    from sys import argv, stderr, exit
+    if len(argv) > 3:
         lines = read_file(argv[1])
         names, pre, funcs, after = func_split(lines)
-        print('\n'.join(pre))
-        print(BB_INSTR_DECLARE)
-        print(F_INSTR_DECLARE)
+        with open(argv[2], 'w') as outf:
+            outf.write('\n'.join(pre)+'\n')
+            outf.write(BB_INSTR_DECLARE+'\n')
+            outf.write(F_INSTR_DECLARE+'\n')
+            for k in names:
+                outf.write(get_f_name(k)+'\n')
+            for k in names:
+                funcs[k] = instrument_function(k, funcs[k])
+                outf.write('\n'.join(funcs[k])+'\n')
+                outf.write('\n'.join(after[k])+'\n')
+        cfgs = []
         for k in names:
-            print(get_f_name(k))
-        for k in names:
-            funcs[k] = instrument_function(k, funcs[k])
-            print('\n'.join(funcs[k]))
-            print('\n'.join(after[k]))
-        for k in names:
-            pass # TODO output CFG data for coverage_listen.c
+            cfgs.append(build_cfg(funcs[k]))
+        with open(argv[3], 'w') as cfgf:
+            cfgf.write(json.dumps(cfgs))
+    else:
+        print("Usage: python3 instr_ll.py infile outfile cfg_outfile", file=stderr)
+        exit(1)

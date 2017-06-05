@@ -1,4 +1,5 @@
 *.out
 *.ll
+cfg/*
 out/*
 normal_out/*

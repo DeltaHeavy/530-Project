@@ -11,7 +11,7 @@ pre_instr_ll/%.ll: tests/%.c
 	clang -O0 -S -g -emit-llvm $^ -o $@
 
 instr_ll/%.ll: pre_instr_ll/%.ll instr_ll.py
-	python3 instr_ll.py $^ > $@
+	python3 instr_ll.py $< $@ cfg/$*.cfg
 
 out/%: instr_ll/%.ll coverage.c
 	clang -fsanitize=address -O2 $^ -o $@
@@ -20,5 +20,6 @@ out/%: instr_ll/%.ll coverage.c
 clean:
 	$(RM) pre_instr_ll/*
 	$(RM) instr_ll/*
+	$(RM) cfg/*
 	$(RM) normal_out/*
 	$(RM) out/*
