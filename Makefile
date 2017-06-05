@@ -18,7 +18,7 @@ out/%: instr_ll/%.ll coverage.c
 
 .PHONY: clean
 clean:
-	@fish -c "count pre_instr_ll/* >/dev/null ^/dev/null; and rm pre_instr_ll/* ; or true"
-	@fish -c "count instr_ll/* >/dev/null ^/dev/null; and rm instr_ll/* ; or true"
-	@fish -c "count normal_out/* >/dev/null ^/dev/null; and rm normal_out/* ; or true"
-	@fish -c "count out/* >/dev/null ^/dev/null; and rm out/* ; or true"
+	$(RM) pre_instr_ll/*
+	$(RM) instr_ll/*
+	$(RM) normal_out/*
+	$(RM) out/*
