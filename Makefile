@@ -1,46 +1,47 @@
 .PHONY: clean
 
 all: normal instrd
-normal: normal_linkedlist normal_leakedlist normal_hello
-instrd: linkedlist leakedlist helloworld
+normal: normal_out/normal_linkedlist normal_out/normal_leakedlist normal_out/normal_hello
+instrd: out/linkedlist out/leakedlist out/helloworld
 
-normal_linkedlist: ll.ll
-	clang -O2 ll.ll -o normal_linkedlist
+normal_out/normal_linkedlist: pre_instr_ll/ll.ll
+	clang -O2 pre_instr_ll/ll.ll -o normal_out/normal_linkedlist
 
-ll.ll: ll.c
-	clang -O0 -S -g -emit-llvm ll.c
+pre_instr_ll/ll.ll: tests/ll.c
+	clang -O0 -S -g -emit-llvm tests/ll.c -o pre_instr_ll/ll.ll
 
-instr_ll.ll: ll.ll parse_ll.py
-	python3 parse_ll.py ll.ll > instr_ll.ll
+instr_ll/instr_ll.ll: pre_instr_ll/ll.ll instr_ll.py
+	python3 instr_ll.py pre_instr_ll/ll.ll > instr_ll/instr_ll.ll
 
-linkedlist: instr_ll.ll coverage.c
-	clang -fsanitize=address -O2 instr_ll.ll coverage.c -o linkedlist
+out/linkedlist: instr_ll/instr_ll.ll coverage.c
+	clang -fsanitize=address -O2 instr_ll/instr_ll.ll coverage.c -o out/linkedlist
 
-normal_leakedlist: leaky.ll
-	clang -O2 leaky.ll -o normal_leakedlist
+normal_out/normal_leakedlist: pre_instr_ll/leaky.ll
+	clang -O2 pre_instr_ll/leaky.ll -o normal_out/normal_leakedlist
 
-leaky.ll: leaky_ll.c
-	clang -O0 -S -g -emit-llvm leaky_ll.c -o leaky.ll
+pre_instr_ll/leaky.ll: tests/leaky_ll.c
+	clang -O0 -S -g -emit-llvm tests/leaky_ll.c -o pre_instr_ll/leaky.ll
 
-instr_leaky.ll: leaky.ll parse_ll.py
-	python3 parse_ll.py leaky.ll > instr_leaky.ll
+instr_ll/instr_leaky.ll: pre_instr_ll/leaky.ll instr_ll.py
+	python3 instr_ll.py pre_instr_ll/leaky.ll > instr_ll/instr_leaky.ll
 
-leakedlist: instr_leaky.ll coverage.c
-	clang -fsanitize=address -O2 instr_leaky.ll coverage.c -o leakedlist
+out/leakedlist: instr_ll/instr_leaky.ll coverage.c
+	clang -fsanitize=address -O2 instr_ll/instr_leaky.ll coverage.c -o out/leakedlist
 
-normal_hello: helloworld.ll
-	clang -O2 helloworld.ll -o normal_hello
+normal_out/normal_hello: pre_instr_ll/helloworld.ll
+	clang -O2 pre_instr_ll/helloworld.ll -o normal_out/normal_hello
 
-helloworld.ll: helloworld.c
-	clang -O0 -S -g -emit-llvm helloworld.c
+pre_instr_ll/helloworld.ll: tests/helloworld.c
+	clang -O0 -S -g -emit-llvm tests/helloworld.c -o pre_instr_ll/helloworld.ll
 
-instr_hello.ll: helloworld.ll parse_ll.py
-	python3 parse_ll.py helloworld.ll > instr_hello.ll
+instr_ll/instr_hello.ll: pre_instr_ll/helloworld.ll instr_ll.py
+	python3 instr_ll.py pre_instr_ll/helloworld.ll > instr_ll/instr_hello.ll
 
-helloworld: instr_hello.ll coverage.c
-	clang -fsanitize=address -O2 instr_hello.ll coverage.c -o helloworld
+out/helloworld: instr_ll/instr_hello.ll coverage.c
+	clang -fsanitize=address -O2 instr_ll/instr_hello.ll coverage.c -o out/helloworld
 
 clean:
-	rm *.ll
-	rm linkedlist leakedlist helloworld
-	rm normal_linkedlist normal_leakedlist normal_hello
+	rm pre_instr_ll/*
+	rm instr_ll/*
+	rm normal_out/*
+	rm out/*

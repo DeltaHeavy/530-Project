@@ -1,8 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "coverage.h"
-
 struct list_el {
    int val;
    struct list_el * next;
@@ -27,8 +25,9 @@ int main() {
 
    while(curr) {
       printf("%d\n", curr->val);
+      head = curr;
       curr = curr->next ;
+      free(head);
    }
-   curr = NULL;
 }
 
