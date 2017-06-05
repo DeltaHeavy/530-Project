@@ -27,7 +27,9 @@ int main() {
 
    while(curr) {
       printf("%d\n", curr->val);
+      head = curr;
       curr = curr->next ;
+      free(head);
    }
 }
 
