@@ -11,7 +11,9 @@ TODO
 * plop that string into calls to __f_transition
 """
 
-F_INSTR_CALL = "  call void @__f_transition("
+F_INSTR_CALL = "  call void @__f_transition(i8* getelementptr inbounds (["
+F_INSTR_MID = " x i8]* @."
+F_INSTR_TAIL = "str, i32 0, i32 0))"
 BB_INSTR_CALL = "  call void @__bb_transition(i64 "
 
 F_INSTR_DECLARE = "\ndeclare void @__f_transition(i8*)\n"
@@ -54,10 +56,10 @@ def func_split(lines):
 
     return names, pre, funcs, after
 
-def instrument_function(lines):
+def instrument_function(func, lines):
     """ [line : str] -> [line : str] """
     appends = []
-    #lines.insert(1, F_INSTR_CALL)
+    lines.insert(1, F_INSTR_CALL + str(len(func)+1) + F_INSTR_MID + func + F_INSTR_TAIL)
     for i in range(len(lines)):
         if "; <label>" in lines[i]:
             l = lines[i][lines[i].index('<label>:')+len('<label>:'):lines[i].rindex(';')].strip()
@@ -70,6 +72,10 @@ def instrument_function(lines):
         lines.insert(i, BB_INSTR_CALL + l + ")")
     return lines
 
+def get_f_name(name):
+    return "@." + name + "str = private unnamed_addr constant [" + (
+            str(len(name)+1) + " x i8] c\"" + name + "\\00\", align 1")
+
 if __name__ == '__main__':
     from sys import argv
     if len(argv) > 1:
@@ -77,7 +83,10 @@ if __name__ == '__main__':
         names, pre, funcs, after = func_split(lines)
         print('\n'.join(pre))
         print(BB_INSTR_DECLARE)
+        print(F_INSTR_DECLARE)
         for k in names:
-            funcs[k] = instrument_function(funcs[k])
+            print(get_f_name(k))
+        for k in names:
+            funcs[k] = instrument_function(k, funcs[k])
             print('\n'.join(funcs[k]))
             print('\n'.join(after[k]))

@@ -1,4 +1,4 @@
-INPUTS = hello linkedlist leakedlist
+INPUTS = hello linkedlist leakedlist func_calls
 
 all: instr normal $(foreach in,$(INPUTS),pre_instr_ll/$(in).ll)
 instr: $(foreach in,$(INPUTS),out/$(in)) $(foreach in,$(INPUTS),instr_ll/$(in).ll)
