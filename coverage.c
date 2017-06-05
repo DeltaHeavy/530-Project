@@ -6,19 +6,19 @@
 
 #define MAX_LEN 64
 
-int WRITE_FD = 0;
+static int WRITE_FD = 1;
 
 static char BUF[MAX_LEN];
 
-/*
-void __transition(const char * const func, const char * const label) {
-   
-   snprintf(BUF, MAX_LEN, "%s:%s\n", func, label);
+void __f_transition(const char * const func) {
+   snprintf(BUF, MAX_LEN, "-> function %s\n", func);
+   BUF[MAX_LEN-1] = '\0';
+   write(WRITE_FD, BUF, strnlen(BUF, MAX_LEN)); 
+}
+
+void __bb_transition(const int label) {
+   snprintf(BUF, MAX_LEN, "-> label %d\n", label);
    BUF[MAX_LEN-1] = '\0';
    write(WRITE_FD, BUF, strnlen(BUF, MAX_LEN));
 }
-*/
 
-void transition() {
-   printf("transition detected\n");
-}
