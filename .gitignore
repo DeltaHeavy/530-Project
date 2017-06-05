@@ -1,8 +1,4 @@
 *.out
 *.ll
-helloworld
-linkedlist
-leakedlist
-normal_hello
-normal_linkedlist
-normal_leakedlist
+out/*
+normal_out/*
