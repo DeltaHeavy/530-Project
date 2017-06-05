@@ -5,10 +5,6 @@ Max Zinkus
 CSC 530
 Evaluating traditional code coverage metrics by
 tracking code progress over a CFG
-
-TODO
-* instrument in a global string for each function
-* plop that string into calls to __f_transition
 """
 
 F_INSTR_CALL = "  call void @__f_transition(i8* getelementptr inbounds (["
@@ -90,3 +86,5 @@ if __name__ == '__main__':
             funcs[k] = instrument_function(k, funcs[k])
             print('\n'.join(funcs[k]))
             print('\n'.join(after[k]))
+        for k in names:
+            pass # TODO output CFG data for coverage_listen.c
