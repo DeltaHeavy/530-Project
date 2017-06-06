@@ -27,3 +27,41 @@ clean:
 	$(RM) normal_out/*
 	$(RM) out/*
 	$(RM) coverage_run
+
+test:
+	@clear
+	@echo hello
+	@echo ==================================================
+	@./coverage_run ./out/hello ./cfg/hello.cfg
+	@read a
+	@clear
+	@echo goto
+	@echo ==================================================
+	@./coverage_run ./out/goto ./cfg/goto.cfg
+	@read a
+	@clear
+	@echo func_calls
+	@echo ==================================================
+	@./coverage_run ./out/func_calls ./cfg/func_calls.cfg
+	@read a
+	@clear
+	@echo uncalled_funcs
+	@echo ==================================================
+	@./coverage_run ./out/uncalled_funcs ./cfg/uncalled_funcs.cfg
+	@read a
+	@clear
+	@echo unreached_blocks
+	@echo ==================================================
+	@./coverage_run ./out/unreached_blocks ./cfg/goto.cfg
+	@read a
+	@clear
+	@echo linkedlist
+	@echo ==================================================
+	@./coverage_run ./out/linkedlist ./cfg/linkedlist.cfg
+	@read a
+	@clear
+	@echo leakedlist
+	@echo ==================================================
+	@./coverage_run ./out/leakedlist ./cfg/leakedlist.cfg
+	@read a
+	@clear
