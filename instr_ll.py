@@ -13,9 +13,13 @@ F_INSTR_CALL = "  call void @__f_transition(i8* getelementptr inbounds (["
 F_INSTR_MID = " x i8]* @."
 F_INSTR_TAIL = "str, i32 0, i32 0))"
 BB_INSTR_CALL = "  call void @__bb_transition(i64 "
+CVG_INIT_CALL = "  call void @__coverage_init()"
+CVG_END_CALL = "  call void @__coverage_end()"
 
 F_INSTR_DECLARE = "\ndeclare void @__f_transition(i8*)\n"
 BB_INSTR_DECLARE = "\ndeclare void @__bb_transition(i64)\n"
+CVG_INIT_DECLARE = "\ndeclare void @__coverage_init()\n"
+CVG_END_DECLARE = "\ndeclare void @__coverage_end()\n"
 
 def read_file(fname):
     """ file : str -> [line : str] """
@@ -58,6 +62,8 @@ def instrument_function(func, lines):
     """ [line : str] -> [line : str] """
     appends = []
     lines.insert(1, F_INSTR_CALL + str(len(func)+1) + F_INSTR_MID + func + F_INSTR_TAIL)
+    if func == 'main':
+        lines.insert(1, CVG_INIT_CALL)
     for i in range(len(lines)):
         if "; <label>" in lines[i]:
             l = lines[i][lines[i].index('<label>:')+len('<label>:'):lines[i].rindex(';')].strip()
@@ -68,6 +74,8 @@ def instrument_function(func, lines):
     while appends:
         i,l = appends.pop()
         lines.insert(i, BB_INSTR_CALL + l + ")")
+    if func == 'main':
+        lines.insert(-2, CVG_END_CALL)
     return lines
 
 def get_f_name(name):
@@ -97,6 +105,8 @@ if __name__ == '__main__':
             outf.write('\n'.join(pre)+'\n')
             outf.write(BB_INSTR_DECLARE+'\n')
             outf.write(F_INSTR_DECLARE+'\n')
+            outf.write(CVG_INIT_DECLARE+'\n')
+            outf.write(CVG_END_DECLARE+'\n')
             for k in names:
                 outf.write(get_f_name(k)+'\n')
             for k in names:
