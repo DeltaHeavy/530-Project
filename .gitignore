@@ -1,5 +1,6 @@
 *.out
 *.ll
+coverage_run
 cfg/*
 out/*
 normal_out/*
