@@ -1,7 +1,7 @@
 INPUTS = $(foreach in,$(shell ls tests/),$(basename $(in)))
 
 all: instr normal $(foreach in,$(INPUTS),pre_instr_ll/$(in).ll)
-instr: $(foreach in,$(INPUTS),out/$(in)) $(foreach in,$(INPUTS),instr_ll/$(in).ll)
+instr: coverage_run $(foreach in,$(INPUTS),out/$(in)) $(foreach in,$(INPUTS),instr_ll/$(in).ll)
 normal: $(foreach in,$(INPUTS),normal_out/$(in))
 
 normal_out/%: pre_instr_ll/%.ll
@@ -16,6 +16,9 @@ instr_ll/%.ll: pre_instr_ll/%.ll instr_ll.py
 out/%: instr_ll/%.ll coverage.c
 	clang -fsanitize=address -O2 $^ -o $@
 
+coverage_%: coverage_%.c
+	clang -O2 $^ -o $@
+
 .PHONY: clean
 clean:
 	$(RM) pre_instr_ll/*
@@ -23,3 +26,4 @@ clean:
 	$(RM) cfg/*
 	$(RM) normal_out/*
 	$(RM) out/*
+	$(RM) coverage_run
