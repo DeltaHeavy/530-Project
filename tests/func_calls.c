@@ -20,5 +20,6 @@ int foo() {
 }
 
 int main() {
+   // foo, bar, baz, quux, bar
    return foo();
 }
