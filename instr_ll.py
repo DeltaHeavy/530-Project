@@ -7,8 +7,6 @@ Evaluating traditional code coverage metrics by
 tracking code progress over a CFG
 """
 
-import json
-
 F_INSTR_CALL = "  call void @__f_transition(i8* getelementptr inbounds (["
 F_INSTR_MID = " x i8]* @."
 F_INSTR_TAIL = "str, i32 0, i32 0))"
@@ -96,6 +94,27 @@ def build_cfg(lines):
                 raise Exception("Label without predecessors!\n%s" % line)
     return list(edges)
 
+def cfg_pack(cfgs):
+    """ CFG encoding
+        num funcs : 1
+        len(func name) : 1
+        func name : ?
+        num edges : 1
+        src : 4
+        dest : 4 (for each block)
+                 (for each function)
+    """
+    s = bytearray()
+    s += int.to_bytes(len(cfgs), 1, 'little')
+    for cfg in cfgs:
+        s += int.to_bytes(len(cfg[0]), 1, 'little')
+        s += bytes(cfg[0]+'\0', "ascii")
+        s += int.to_bytes(len(cfg[1]), 1, 'little')
+        for src,dest in cfg[1]:
+            s += int.to_bytes(src, 4, 'little')
+            s += int.to_bytes(dest, 4, 'little')
+    return bytes(s)
+
 if __name__ == '__main__':
     from sys import argv, stderr, exit
     if len(argv) > 3:
@@ -115,9 +134,9 @@ if __name__ == '__main__':
                 outf.write('\n'.join(after[k])+'\n')
         cfgs = []
         for k in names:
-            cfgs.append(build_cfg(funcs[k]))
-        with open(argv[3], 'w') as cfgf:
-            cfgf.write(json.dumps(cfgs))
+            cfgs.append((k, build_cfg(funcs[k])))
+        with open(argv[3], 'wb') as cfgf:
+            cfgf.write(cfg_pack(cfgs))
     else:
         print("Usage: python3 instr_ll.py infile outfile cfg_outfile", file=stderr)
         exit(1)
