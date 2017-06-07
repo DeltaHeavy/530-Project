@@ -52,7 +52,7 @@ test:
 	@clear
 	@echo unreached_blocks
 	@echo ==================================================
-	@./coverage_run ./out/unreached_blocks ./cfg/goto.cfg
+	@./coverage_run ./out/unreached_blocks ./cfg/unreached_blocks.cfg
 	@read a
 	@clear
 	@echo linkedlist
