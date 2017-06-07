@@ -74,8 +74,8 @@ int listener_main(char *cfgpath) {
          funcs[i].edges[j].dest = ((int *)cfg)[1];
          cfg += 2*sizeof(int);
       }
-      funcs[i].cur_block = (int *)calloc(sizeof(int), 1);
-      funcs[i].cur_depth = 1;
+      funcs[i].cur_block = NULL;
+      funcs[i].cur_depth = 0;
    }
    if ((fd = open(FIFO, O_RDONLY)) == -1) {
       return 1;
@@ -100,9 +100,9 @@ int listener_main(char *cfgpath) {
             for (i = 0; i < num_funcs; i++) {
                if (!strncmp((char *)input, funcs[i].name, MAX_LEN)) {
                   funcs[i].exec = 1;
-                  if (cur_func == i) { // recursive call
-                     funcs[i].cur_block = realloc(funcs[i].cur_block,
-                           ++funcs[i].cur_depth*sizeof(int));
+                  funcs[i].cur_block = realloc(funcs[i].cur_block,
+                           (++funcs[i].cur_depth)*sizeof(int));
+                  if (funcs[i].cur_depth > 1) {
                      memmove(funcs[i].cur_block+1, funcs[i].cur_block, funcs[i].cur_depth-1); 
                   }
                   cur_func = i;
@@ -131,8 +131,8 @@ int listener_main(char *cfgpath) {
                for (j = 0; j < funcs[i].num_edges && !status; j++) {
                   if (lbl == funcs[i].edges[j].dest ||
                       lbl == funcs[i].edges[j].src) {
-                     if (cur_func == i) { // return from recursive call
-                        funcs[i].cur_depth--;
+                     funcs[i].cur_depth--;
+                     if (funcs[i].cur_depth > 0) {
                         memmove(funcs[i].cur_block, funcs[i].cur_block+1, funcs[i].cur_depth);
                      }
                      cur_func = i;
@@ -223,9 +223,14 @@ int main(int argc, char **argv) {
          fflush(stderr);
          fprintf(stderr, "Program under test took %f ms\n",
                timespecDiff(&end, &start) / 1000000.0);
-         if (!WIFEXITED(status) || WEXITSTATUS(status)) {
-            fprintf(stderr, "Listener exited with status %d\n", WEXITSTATUS(status));
-            return 1;
+         if (WIFEXITED(status)) {
+            if (WEXITSTATUS(status)) {
+               fprintf(stderr, "Listener exited with status %d\n", WEXITSTATUS(status));
+               return 1;
+            }
+         }
+         else {
+            fprintf(stderr, "Listener failed\n");
          }
          return 0;
       }
