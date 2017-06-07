@@ -5,8 +5,8 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <fcntl.h>
-#include <errno.h>
 #include <string.h>
+#include <time.h>
 
 #include "coverage.h"
 
@@ -21,13 +21,13 @@ struct func {
    char *name;
    unsigned char num_edges;
    struct edge* edges;
+   int *cur_block;
+   int cur_depth;
 };
-
-int LISTEN_READY = 0;
 
 int listener_main(char *cfgpath) {
    unsigned char tmp;
-   int cont = 1, i, j, fd, lbl, src, dest, cur_func, cur_block = 0;
+   int status, cont = 1, i, j, k, fd, lbl, src, dest, cur_func;
    unsigned char *input, *cfg_orig, *cfg, num_funcs, name_len, num_edges;
    float fcvg = 0.0f, cvg = 0.0f;
    struct stat buf;
@@ -37,10 +37,19 @@ int listener_main(char *cfgpath) {
    if (cfgfd == -1) {
       return 1;
    }
-   fstat(cfgfd, &buf);
+   status = fstat(cfgfd, &buf);
+   if (status == -1) {
+      return 1;
+   }
    cfg = (unsigned char *)calloc(buf.st_size, 1);
-   read(cfgfd, cfg, buf.st_size);
-   close(cfgfd);
+   status = read(cfgfd, cfg, buf.st_size);
+   if (status != buf.st_size) {
+      return 1;
+   }
+   status = close(cfgfd);
+   if (status == -1) {
+      return 1;
+   }
 
    cfg_orig = cfg;
    num_funcs = cfg[0];
@@ -53,6 +62,7 @@ int listener_main(char *cfgpath) {
       memcpy(funcs[i].name, cfg, name_len);
       if (!strncmp(funcs[i].name, "main", MAX_LEN)) {
          cur_func = i;
+         funcs[i].exec = 1;
       }
       cfg += name_len+1;
       num_edges = cfg[0];
@@ -64,39 +74,82 @@ int listener_main(char *cfgpath) {
          funcs[i].edges[j].dest = ((int *)cfg)[1];
          cfg += 2*sizeof(int);
       }
+      funcs[i].cur_block = (int *)calloc(sizeof(int), 1);
+      funcs[i].cur_depth = 1;
    }
-   LISTEN_READY = 1;
    if ((fd = open(FIFO, O_RDONLY)) == -1) {
-      perror(strerror(errno));
-      fprintf(stderr, "child open failed\n");
       return 1;
    }
    while (cont) {
-      read(fd, &tmp, 1);
+      status = read(fd, &tmp, 1);
+      if (status != 1) {
+         return 1;
+      }
       switch (tmp) {
          case 'F':
-            read(fd, &tmp, 1);
+            status = read(fd, &tmp, 1);
+            if (status != 1) {
+               return 1;
+            }
             input = (unsigned char *)calloc(tmp+1, 1);
-            read(fd, input, tmp);
+            status = read(fd, input, tmp);
+            if (status != tmp) {
+               return 1;
+            }
             input[tmp] = '\0';
             for (i = 0; i < num_funcs; i++) {
-               if (!funcs[i].exec &&
-                     !strncmp((char *)input, funcs[i].name, MAX_LEN)) {
+               if (!strncmp((char *)input, funcs[i].name, MAX_LEN)) {
                   funcs[i].exec = 1;
+                  if (cur_func == i) { // recursive call
+                     funcs[i].cur_block = realloc(funcs[i].cur_block,
+                           ++funcs[i].cur_depth*sizeof(int));
+                     memmove(funcs[i].cur_block+1, funcs[i].cur_block, funcs[i].cur_depth-1); 
+                  }
                   cur_func = i;
+                  *(funcs[cur_func].cur_block) = 0;
                }
             }
             free(input);
             break;
          case 'B':
-            read(fd, &lbl, sizeof(int));
-            for (j = 0; j < funcs[cur_func].num_edges; j++) {
-               if (!funcs[cur_func].edges[j].exec &&
-                     funcs[cur_func].edges[j].src == cur_block &&
-                     funcs[cur_func].edges[j].dest == lbl) {
-                  funcs[cur_func].edges[j].exec = 1; 
-                  cur_block = lbl;
+            status = read(fd, &lbl, sizeof(int));
+            if (status != sizeof(int)) {
+               return 1;
+            }
+            status = 0;
+            for (j = 0; j < funcs[cur_func].num_edges && !status; j++) {
+               if (funcs[cur_func].edges[j].src == *(funcs[cur_func].cur_block) &&
+                   funcs[cur_func].edges[j].dest == lbl) {
+                  if (!funcs[cur_func].edges[j].exec) {
+                     funcs[cur_func].edges[j].exec = 1; 
+                  }
+                  *(funcs[cur_func].cur_block) = lbl;
+                  status = 1;
                }
+            }
+            for (i = 0; i < num_funcs && !status; i++) { // didn't find edge
+               for (j = 0; j < funcs[i].num_edges && !status; j++) {
+                  if (lbl == funcs[i].edges[j].dest ||
+                      lbl == funcs[i].edges[j].src) {
+                     if (cur_func == i) { // return from recursive call
+                        funcs[i].cur_depth--;
+                        memmove(funcs[i].cur_block, funcs[i].cur_block+1, funcs[i].cur_depth);
+                     }
+                     cur_func = i;
+                     for (k = 0; k < funcs[cur_func].num_edges; k++) {
+                        if (*(funcs[cur_func].cur_block) == funcs[cur_func].edges[k].src &&
+                            lbl == funcs[cur_func].edges[k].dest) {
+                           funcs[cur_func].edges[k].exec = 1;
+                        }
+                     }
+                     *(funcs[cur_func].cur_block) = lbl;
+                     status = 1;
+                  }
+               }
+            }
+            if (!status) {
+               fprintf(stderr, "bad edge %d->%d\n", *(funcs[cur_func].cur_block), lbl);
+               return 1;
             }
             break;
          case '\0':
@@ -115,7 +168,7 @@ int listener_main(char *cfgpath) {
          fprintf(stderr, "%12s %12s : COVERED\n", " ", funcs[i].name);
          fcvg += 1.0f;
          cvg = 0.0f;
-         for (j = funcs[i].num_edges-1; j >= 0; j--) {
+         for (j = 0; j < funcs[i].num_edges; j++) {
             if (funcs[i].edges[j].exec) {
                cvg += 1.0f;
             }
@@ -131,20 +184,28 @@ int listener_main(char *cfgpath) {
       }
       free(funcs[i].name);
       free(funcs[i].edges);
+      free(funcs[i].cur_block);
    }
    fcvg /= num_funcs;
    fprintf(stderr, "Function Coverage: %.2f\n", fcvg*100.0f);
+   fflush(stderr);
    free(funcs);
    free(cfg_orig);
    return 0;
 }
 
+int64_t timespecDiff(struct timespec *timeA_p, struct timespec *timeB_p)
+{
+     return ((timeA_p->tv_sec * 1000000000) + timeA_p->tv_nsec) -
+                   ((timeB_p->tv_sec * 1000000000) + timeB_p->tv_nsec);
+}
+
 int main(int argc, char **argv) {
    int status;
    pid_t listen, prog;
+   struct timespec start, end;
    unlink(FIFO);
    if (mkfifo(FIFO, 0666) != 0) {
-      perror(strerror(errno));
       fprintf(stderr, "mkfifo failed\n");
       return 1;
    }
@@ -154,16 +215,21 @@ int main(int argc, char **argv) {
       return 1;
    }
    if ((listen = fork())) { // parent
+      clock_gettime(CLOCK_MONOTONIC, &start);
       if ((prog = fork())) { // parent
-         waitpid(prog, &status, WIFEXITED(NULL));
-         waitpid(listen, &status, WIFEXITED(NULL));
+         waitpid(prog, NULL, 0);
+         clock_gettime(CLOCK_MONOTONIC, &end);
+         waitpid(listen, &status, 0);
+         fflush(stderr);
+         fprintf(stderr, "Program under test took %f ms\n",
+               timespecDiff(&end, &start) / 1000000.0);
+         if (!WIFEXITED(status) || WEXITSTATUS(status)) {
+            fprintf(stderr, "Listener exited with status %d\n", WEXITSTATUS(status));
+            return 1;
+         }
          return 0;
       }
-      else {
-         while (LISTEN_READY) {
-            fprintf(stderr, "waiting for listener...\n");
-            sleep(1);
-         }
+      else { // child
          return execvp(argv[1], argv+1);
       }
    }
