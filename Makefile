@@ -14,7 +14,7 @@ instr_ll/%.ll: pre_instr_ll/%.ll instr_ll.py
 	python3 instr_ll.py $< $@ cfg/$*.cfg
 
 out/%: instr_ll/%.ll coverage.c
-	clang -fsanitize=address -O2 $^ -o $@
+	clang -fsanitize=address -O0 $^ -o $@
 
 coverage_%: coverage_%.c
 	clang -O2 $^ -o $@
@@ -55,6 +55,16 @@ test:
 	@./coverage_run ./out/unreached_blocks ./cfg/unreached_blocks.cfg
 	@read a
 	@clear
+	@echo unreached_input 0
+	@echo ==================================================
+	@echo -n "0" | ./coverage_run ./out/unreached_input ./cfg/unreached_input.cfg
+	@read a
+	@clear
+	@echo unreached_input 1
+	@echo ==================================================
+	@echo -n "1" | ./coverage_run ./out/unreached_input ./cfg/unreached_input.cfg
+	@read a
+	@clear
 	@echo linkedlist
 	@echo ==================================================
 	@./coverage_run ./out/linkedlist ./cfg/linkedlist.cfg
@@ -63,5 +73,10 @@ test:
 	@echo leakedlist
 	@echo ==================================================
 	@./coverage_run ./out/leakedlist ./cfg/leakedlist.cfg
+	@read a
+	@clear
+	@echo burn_cycles
+	@echo ==================================================
+	@./coverage_run ./out/burn_cycles ./cfg/burn_cycles.cfg
 	@read a
 	@clear
